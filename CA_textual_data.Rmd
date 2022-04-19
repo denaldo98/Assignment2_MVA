@@ -1,0 +1,399 @@
+---
+title: "CA on the 'Mortality' dataset "
+author: "Denaldo Lapi, Samy Chouti, Franscesco Aristei"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+# delete R objects left in memory
+rm(list = ls())
+```
+
+```{r}
+# install needed packages
+#install.packages(c("FactoMineR", "factoextra", "gplots", "corrplot"))
+```
+
+```{r, results='hide'}
+# load libraries
+library(FactoMineR) # for CA
+library(factoextra) # for ggplot visualizations
+```
+
+## Exploratory data analysis
+
+```{r}
+# load the data
+data("mortality")
+```
+
+```{r}
+# inspect the dataset
+head(mortality) # first rows
+```
+
+Let's see a brief summary of the main statistics of the dataset:
+
+```{r}
+summary(mortality)
+```
+
+The "mortality" dataset is a data frame with 62 rows (the different causes of death) and 18 columns. Each column corresponds to an age interval (15-24, 25-34, 35-44, 45-54, 55-64, 65-74, 75-84, 85-94, 95 and more) in a year. The first 9 columns correspond to data in 1979 and the 9 last columns to data in 2006. In each cell, the count of deaths for a cause of death in an age interval (in a year) is given.
+
+The first 9 cols correspond to data in 1979 and the 9 last columns correspond to data in 2006.
+
+We will perform PCA considering only the data corresponding to 1979 (the first 9 columns)
+
+## CA on the first 8 columns
+
+```{r}
+res.ca <- CA(mortality[, 1:8], graph = FALSE) # don't show CA graph
+```
+
+Due to the high number of row points , the CA graph (factor map) is obviously very difficult to interpret because of many overlappings, that's why we'll try to visualize the result of the CA in a smarter way. At first, let's see a summary of the performed CA to obtain some first insights:
+
+```{r}
+summary(res.ca)
+```
+
+```{r}
+# obtained  CA object
+res.ca
+```
+
+## Interpretation and visualizations
+
+Let's now analyze in details the outputs of the CA.
+
+### Eigenvalues
+
+The first aspect we typically look at in FA methods are eigenvalues, i.e. we try to understand how the newly created axes/dimensions are able to capture the deviation from independence of the original contingency table, that is how the overall inertia of our cloud of points is explained by the new axes.
+
+```{r}
+# eigenvalues and explained inertia
+res.ca$eig
+```
+
+#### Scree Plot
+
+Let's graphically visualize the explained variance by means of a Scree Plot
+
+```{r}
+?fviz_screeplot
+```
+
+```{r}
+fviz_screeplot(res.ca, addlabels = TRUE, ylim = c(0, 65),ggtheme = theme_get())
+```
+
+***Which percentage of variability is explained by the first two dimensions?***
+
+From the graph above and from the values seen before, we can easily conclude that the first 2 dimensions explain 91.31574% of the variability of the entire cloud of points, therefore we can conclude that the first two dimensions are enough to describe the whole contingency table, since they capture a very large percentage of the deviation from independence of our original dataset.
+
+Therefore, an analysis of the plane consisting of the first 2 dimensions would be sufficient to extract conclusions from the performed CA.
+
+### Plots
+
+Let's build some meaningful plots, since the full CA plot contains lots of overlapping points
+
+The function fviz_ca_biplot() of the package "factoextra" or the function plot.CA() of "FactoMineR of can be used to draw the biplot of rows and columns variables, i.e. to provide a simultaneous representation of rows and columns.
+
+```{r}
+?plot.CA
+```
+
+```{r}
+?fviz_ca_biplot # provides ggplot-based elegant visualizations of CA outputs
+```
+
+To better render the graph, we limit the number of displayed labels by changing the number of overlaps:
+
+```{r}
+options(ggrepel.max.overlaps =5) # max number of allowed overlaps  
+fviz_ca_biplot(res.ca, repel = TRUE) # repel avoids text overlapping
+#plot.CA(res.ca, autoLab="yes", shadowtext="True", graph.type = "ggplot", cex=0.7)
+```
+
+The graph above represents all the row and column points. As we can see, due to the presence of a lot of row points and due to overlapping labels, the graph is pretty difficult to be read.
+
+Rows are represented as blue points and cols as red triangles. The distance between any row points or column points gives a measure of their similarity (or dissimilarity). Row points with similar profile are closed on the factor map. The same holds true for column points.
+
+#### Interpretation of the 1st factorial plane
+
+In order to get a useful interpretation of the 1st factorial plane we decide to show only the 10 row points contributing more to the first 2 dimensions, while we add some transparency to the other points.
+
+In order obtain the desired graph it is enough to use the plot.CA function as shown in the code snippet below, where we also add the parameter "cex" to reduce the size of the labels
+
+```{r}
+?plot.CA
+```
+
+```{r}
+options(ggrepel.max.overlaps = Inf) # max number of allowed overlaps  
+plot.CA(res.ca, selectRow ="contrib 10", cex=0.65, unselect = 0.92, graph.type = "ggplot", autolab="yes")
+```
+
+Let's now to the following questions:
+
+-   ***Interpret the first factorial plane (dimensions 1 and 2)***
+
+-   ***Study the similarities between age groups according to causes of death***
+
+-   ***Study the similarities between causes of death according to age groups***
+
+-   ***Which are the main associations between age groups and causes of death?***
+
+    \
+
+The first factorial plane shows that most of the deviation from independence (i.e. inertia of the cloud of points) comes from the separation of the young age ranges, i.e. 15-24, 25-34, 35-44 and the rest.
+
+This plane is able to cluster together causes of death that are more specific to certain age ranges and it also create groups of "similar" age ranges on the basis of the causes of death that they share.
+
+-   In particular, the 1st dimension of the plot separates young people (on the right side) from old people (on the left of the origin): it puts in ascending order the ages from the right to the left of the axes. We can see that it also creates a kind of separation between 2 kinds of diseases: on the right there are causes of death not related to illness conditions, while on the left there are illness realated casues of death.
+
+-   The 2nd dimension separates the age-range 15-24 (on the top) from the rest of the ranges: in particular it shows an opposition of that range with the range 45-54 and 55-64, that are the middle age ranges. This 2nd dimension also puts in opposition tumour related diseases and "Chronic liver disease" with "Road accidents" (on the top of the 2nd dimension) and other types of diseases, such as heart diseases, "Cerebrovascular disease", "Other ill-defined symptoms and conditions", "Other accidents, "Events of undetermined intention" and "Suicides".
+
+-   The position of each cause of death in the first factorial plane shows the ranges of age it affects more. For instance, we can immediately see that causes of death in the first quadrant of the plot are mostly related to young age ranges: for instance "Road accidents" affects more people in the range 15-24 and then 25-34, as expected, since young people are typically more reckless when driving. "Events of undetermined intention", "Other accidents" and "Suicides" are close to the ranges 25-34 and 35-44. While "Other ill-defined symptoms and conditions", "Other heart disease", "Cerebrovascular disease" affects more the older people in the ranges 85-94 and 75-84: again this is an expected behavior. In the lower part of the graph we have all the diseases related to the the middle age ranges, i.e. 35-44, 45-54, 55,64 and also 65-75: the typical diseases for this categories are various types of tumours and "Chronic liver disease".
+
+-   While the position of each range age shows the similarities between the various age ranges, depending on the causes of death: for instance, we can say that the ranges 85-94 and 75-84 are very closed to each other since they share many causes of death; we can say the same for the ranges 55-64, 35-44, 45-54 and evden 65-74 which represent the middle ages; the same reasoning can be also done for the ranges 25-34 and 15-24.
+
+*Overall, what we can say is that the 1st factorial plane is very able to cluster the age-ranges based on the types of disease most frequent for each range and, similarly, it is able to group together causes of deaths that regards specific ages and, finally, it is able to create meaningful associations between age groups and the diseases that typically affect them.*
+
+#### Row analysis
+
+Let's now briefly analyze separately the row points, i.e. the causes of death.
+
+```{r}
+#head(res.ca$row)
+# Output to long to visualize
+```
+
+##### Coordinates of row points
+
+Let's show the coordinates of the row points, i.e. the causes of death, into the newly created dimensions
+
+```{r}
+head(res.ca$row$coord) # coordinates of the first 6 row points
+```
+
+##### 
+
+Let's see how this row points are displayed into the first factorial plane, by showing only the 15 most contributing points to the 1st factorial plane:
+
+```{r}
+# visualize only row points
+options(ggrepel.max.overlaps = Inf) # max number of allowed overlaps 
+plot.CA(res.ca, selectRow ="contrib 15", cex=0.65, unselect = 0.92, invisible = "col", graph.type = "ggplot", autolab="yes") # show only most contributing points
+```
+
+The above plot shows the relationships between row points: rows with a similar profile are grouped together, while negatively correlated rows are positioned on opposite sides of the plot origin (opposed quadrants). The distance between row points and the origin measures the quality of the row points on the factor map. Row points that are away from the origin are well represented on the factor map.
+
+This plot shows again 3 main clusters of causes of death: on the 1st quadrant we have a group of causes of death regarding younger people (as we will see on the graph of column data points), on the bottom we have the diseases regarding middle age people and on the 2nd quadrant we have another group of diseases regarding the older people.
+
+##### Quality of representation of rows
+
+The result of the analysis shows that the contingency table has been successfully represented in two dimensional space using correspondence analysis, indeed the first two dimensions are sufficient to retain more than 90% of the total inertia (variation) contained in the data.
+
+However, not all the points are equally well displayed in the two dimensions.
+
+The quality of representation of the rows on the new dimensions is described by the squared cosine (cos2) or the squared correlations.
+
+The cos2 measures the degree of association between rows/columns and a particular axis. The cos2 of row points can be extracted as follow:
+
+```{r}
+head(res.ca$row$cos2,3) # quality of representation of first 3 row points
+```
+
+The values of the cos2 are comprised between 0 and 1. The sum of the cos2 for rows over all the CA dimensions is equal to one.
+
+The quality of representation of a row or column in n dimensions is simply the sum of the squared cosine of that row or column over the n considered dimensions.
+
+If a row item is well represented by two dimensions, the sum of the cos2 is closed to one.
+
+By using the fviz_ca_row() function of "factoextra" we can color row points by their cos2 values.
+
+As shown below, by using gradient.cols = c("white", "blue", "red") we have that:
+
+-   rows with low cos2 values will be colored in "white"
+-   rows with mid cos2 values will be colored in "blue"
+-   rows with high cos2 values will be colored in "red"
+
+```{r}
+# Color row points by cos2 value
+options(ggrepel.max.overlaps = 7) # max number of allowed overlaps 
+fviz_ca_row(res.ca, col.row = "cos2",
+             gradient.cols = c("white", "blue", "red"), 
+             repel = TRUE)
+
+```
+
+We could also change the transparency of the row points according to their cos2 values using the option alpha.row = "cos2":
+
+```{r}
+# Change the transparency by cos2 values
+options(ggrepel.max.overlaps = 7) # max number of allowed overlaps 
+fviz_ca_row(res.ca, repel=TRUE, alpha.row="cos2")
+```
+
+It's also possible to create a bar plot of the rows cos2 using the function fviz_cos2() of the faxtoextra package:
+
+```{r}
+?fviz_cos2
+```
+
+```{r}
+# Cos2 of rows on Dim.1 and Dim.2
+fviz_cos2(res.ca, choice = "row", axes = 1:2, repel=TRUE, top=15, ggtheme=theme_get()) # show only top 15
+```
+
+The above plot shows the 15 row points better represented by the first 2 dimensions, i.e. whose intertia is better captured by the first factorial plane.
+
+##### Contributions of rows to the dimensions
+
+Let's now see how much each row point contributes to the inertia captured by each new dimension
+
+```{r}
+head(res.ca$row$contrib)
+```
+
+The row variables with the larger value, contribute the most to the definition of the dimensions.
+
+The function fviz_contrib() of factoextra package can be used to draw a bar plot of row contributions.
+
+The bar plot of the total contribution to dimension 1 and 2 can be obtained as follow:
+
+```{r}
+fviz_contrib(res.ca, choice = "row", axes = 1:2, top = 15, ggtheme=theme_get()) # just show the top 15 contributing rows
+```
+
+The rows "Road accidents", "Suicides", "Other accidents" are three the most important rows in the definition of the first two dimensions.
+
+In order to see the rows, i.e. the causes of death, that contribute most to the first dimension:
+
+```{r}
+fviz_contrib(res.ca, choice = "row", axes = 1, top = 15, ggtheme=theme_get()) # just show the top 15 contributing rows
+```
+
+***What are the three causes of death most influencing the formation of the first principal component?***
+
+The rows "Road accidents", "Suicides", "Other accidents" are the three most important cause of death in the definition of the first dimension.
+
+As seen for the cos2, the most contributing row points can be highlighted on the plot of row points as follows:
+
+```{r}
+fviz_ca_row(res.ca, col.row = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+```
+
+Note that, it's also possible to control the transparency of row points according to their contribution values using the option alpha.row = "contrib", as shown below:
+
+```{r}
+# Change the transparency by contrib values
+fviz_ca_row(res.ca, alpha.row="contrib",
+             repel = TRUE)
+```
+
+#### Column analysis
+
+We can repeat the same analysis done for the rows also for the columns
+
+```{r}
+#head(res.ca$col)
+# Output to long to visualize
+```
+
+##### Coordinates of column points
+
+```{r}
+res.ca$col$coord  # coordinates of the column points (i.e. age ranges) in the new dimensions
+```
+
+Let's visualize how column points are positioned in the first factorial plane
+
+```{r}
+# visualize only col points
+fviz_ca_col(res.ca, repel = TRUE) 
+```
+
+The plot above shows the relationships between column points: columns with a similar profile are grouped together, i.e. in our case age-ranges that share many causes of death are clustered together.
+
+As said before, the CA allows to create groups of age ranges based on the causes of death they share.
+
+##### Quality of representation of columns
+
+As seen for the row points, the cos2 of col points can be extracted as follow:
+
+```{r}
+res.ca$col$cos2 
+```
+
+Let's color column points depending on their cos2 value for the first 2 dimensions:
+
+```{r}
+# Color by cos2 values: quality on the factor map
+fviz_ca_col(res.ca, col.col = "cos2",
+             gradient.cols = c("white", "blue", "red"), 
+             repel = TRUE)
+```
+
+As done for rows , we can change the transparency of the col points according to their cos2 values using the option alpha.col = "cos2":
+
+```{r}
+# Change the transparency by cos2 values
+fviz_ca_col(res.ca, repel=TRUE, alpha.col ="cos2")
+```
+
+It's also possible to create a bar plot of cols cos2:
+
+```{r}
+# Cos2 of columns on Dim.1 and Dim.2
+fviz_cos2(res.ca, choice = "col", axes = 1:2, ggtheme=theme_get())
+```
+
+***What are the age intervals best represented in the first factorial plane?***
+
+The above bar plot shows, in descending order, the quality of representation of columns (i.e. age intervals) on the first 2 dimensions. We can easily see that the best represented age ranges are, in order: 55-64 followed by 15-24, 25-34, 75-84, 45-54, 85-94, 35-44, 65-74
+
+```{r}
+?fviz_cos2
+```
+
+##### Contributions of cols to the dimensions
+
+To see the contribution of each column (age range) to each new dimension:
+
+```{r}
+head(res.ca$col$contrib)
+```
+
+As done for rows, we can use a bar plot of columns contributions to show the most contributing columns.
+
+The total contribution of each columns to the first 2 dimensions can be obtained as follow:
+
+```{r}
+fviz_contrib(res.ca, choice = "col", axes = 1:2, ggtheme=theme_get())
+```
+
+The age ragnes 15-24, 25-34, 85-94 are the 3 most contributing to the variance of the first 2 dimensions.
+
+We can highlight on the biplot the contribution of each column :
+
+```{r}
+fviz_ca_col(res.ca, col.col =  "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+```
+
+We can also control the transparency of column points according to their contributions:
+
+```{r}
+# Change the transparency by contrib values
+fviz_ca_col(res.ca, alpha.col="contrib",
+             repel = TRUE)
+```
