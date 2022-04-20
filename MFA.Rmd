@@ -1,0 +1,343 @@
+---
+title: "Orange MFA"
+output: html_notebook
+---
+
+First thing, we have to load the FactoMineR library to apply the MFA and the missMDA library to load the dataset.
+
+```{r}
+library(FactoMineR)
+library(missMDA)
+```
+
+Now, we read the data on which we want to perform the MFA, giving a summary, to have an idea of the data.
+
+```{r}
+data(orange)
+head(orange)
+```
+```{r}
+summary(orange)
+nrow(orange)
+ncol(orange)
+```
+
+
+```{r}
+?orange
+```
+From the description given by the ? command, we have that the Orange data frame is a sensory description of 12 orange juices by 8 attributes.
+
+
+First thing we need to do is to treat the missing values.
+Having all quantitative variables, we decide to impute the missing values, replacing them with the mean value of the column to which they belong.
+
+```{r}
+
+# now we substitute with the mean the NA values in the numerical variables
+# first we calculate the mean
+cintensity_mean <- mean(orange$Color.intensity, na.rm = TRUE)
+ointensity_mean <- mean(orange$Odor.intensity, na.rm = TRUE)
+aintensity_mean <- mean(orange$Attack.intensity, na.rm = TRUE)
+sweet_mean <- mean(orange$Sweet, na.rm = TRUE)
+acid_mean <- mean(orange$Acid, na.rm = TRUE)
+bitter_mean <- mean(orange$Bitter, na.rm = TRUE)
+pulp_mean <- mean(orange$Pulp, na.rm = TRUE)
+
+# and then we substitute
+orange$Color.intensity[is.na(orange$Color.intensity)] <- cintensity_mean
+orange$Odor.intensity[is.na(orange$Odor.intensity)] <- ointensity_mean
+orange$Attack.intensity[is.na(orange$Attack.intensity)] <- aintensity_mean
+orange$Sweet[is.na(orange$Sweet)] <- sweet_mean
+orange$Acid[is.na(orange$Acid)] <- acid_mean
+orange$Bitter[is.na(orange$Bitter)] <- bitter_mean
+orange$Pulp[is.na(orange$Pulp)] <- pulp_mean
+```
+
+To see the updated dataset:
+
+```{r}
+summary(orange)
+```
+Now we don't have any NA value.
+
+Now that we have treated the missing values in the dataset, it is necessary to choose the group in which we want to divide the columns (variables) of the dataset.
+Therefore, we divide in two groups of quantitative variables:
+
+- Color.intensity, Odor.intensity, Attack.intensity, Sweet and Acid
+
+- Bitter, Pulp, Typicity 
+
+Given that we are performing MFA on the dataset, it is necessary to scale to unit variance each quantitative variable.
+First, we observe the variance of each column:
+
+```{r}
+
+for(i in 1:ncol(orange)) {       # for-loop over columns
+  print(var(orange[ , i]))
+}
+```
+
+Therefore we proceed in doing so.
+The MFA() method provided by FactoMine does it for us, specifying the parameter type = 's'.
+
+```{r}
+?MFA
+res <- MFA(orange, group=c(5,3), type=rep("s", 2),
+           name.group=c("Intensity","Taste"))
+```
+
+
+So we applied MFA to the dataset, unit-scaling it.
+Specifically we decided to divide the quantitative variables in two families:
+
+- The first 5 variables give us the intensity of the orange juice and a description of their acidity and sweetness.
+- The last 5 are used to give a description of bitterness, the amount of pulp, and the tipicity of each orange juice.
+
+
+Now it is useful to visualize the main results obtained after applying the MFA.
+
+```{r}
+res
+```
+### Eigenvalues
+
+First we can see the eigenvalues obtained to visualize the proportion of variances retained by the different dimensions (axes).
+
+```{r}
+library(factoextra)
+eig.val <- get_eigenvalue(res)
+head(eig.val)
+```
+
+Visualizing also the screeplot
+
+```{r}
+fviz_screeplot(res)
+```
+We see that just using the first two dimensions, the majority of the variability (around 80%) it's already explained.
+Separate analysis of the eigenvalues for each of the two groups.
+
+```{r}
+res$separate.analyses$Intensity$eig
+```
+```{r}
+res$separate.analyses$Taste$eig
+```
+
+### Groups
+
+The function get_mfa_var() is used to extract the results for groups of variables. 
+This function returns a list containing the coordinates, the cos2 and the contribution of groups
+
+```{r}
+group <- get_mfa_var(res, "group")
+group
+```
+
+Then we can extract each specific component, visualizing it.
+
+```{r}
+# Coordinates of groups
+head(group$coord)
+# Cos2: quality of representation on the factore map
+head(group$cos2)
+# Contributions to the  dimensions
+head(group$contrib)
+```
+
+
+First it is possible to plot the group of variables.
+
+```{r}
+fviz_mfa_var(res, "group")
+```
+
+
+From the plot, we can observe that the groups give a similar representation of the individuals, in fact, they are close to each other.
+Specifically, we see that for both, the value on the first dimension is close to 1 (around 0.8) which means that the Lg (projected inertia of all the variables of j-th group on v1) value with the first dimension of the MFA is high for both the groups, so they contribute similarly to the first dimension.
+For the second dimension we have that the Taste group of variables has a greater value for the second dimension, which means that it contributes more to it.
+
+
+To draw a bar plot of groups contribution to the dimensions, use the function fviz_contrib():
+```{r}
+# Contribution to the first dimension
+fviz_contrib(res, "group", axes = 1)
+```
+
+```{r}
+# Contribution to the second dimension
+fviz_contrib(res, "group", axes = 2)
+```
+
+### Partial Axes
+
+```{r}
+# Graph of the partial axes
+plot(res,choix="axes")
+```
+Partial axes: 
+The graph of partial axes shows the relationship between the principal axes of the MFA and the ones obtained from analyzing each group.
+From the graph obtained after applying the MFA, we observe that the first dimension of the Intensity group is very related to the first dimension of the global MFA, while it is negatively related to the second dimension of the global MFA, which means that in this dimension the description provided by such group of variables, diverge from the one of the Global MFA. (MAKES SENSE?????)
+For the Taste group instead, we have that the first dimension, is negatively correlated to the first dimension of the global MFA, so for this dimension, it has a description which will be the opposite one of the global MFA.
+While it is highly correlated in the second dimension with the global MFA.
+
+```{r}
+res$partial.axes
+```
+The graphical results is confirmed by the $coord variable.
+In fact, Dim1.Intensity and Dim1 have a value of 0.89, highlighting that they point in the same direction, while Dim1.Taste and Dim1 have a negative value of -0.89.
+At the same time Dim2.Intensity and Dim2 have a value of -0.74 while Dim2.Taste and Dim2 are higly correlated, with a value of 0.89.
+
+### Variables
+
+The function get_mfa_var() is used to extract the results for quantitative variables (in our case all the variables).
+This function returns a list containing the coordinates, the cos2 and the contribution of variables:
+
+```{r}
+var <- get_mfa_var(res, "quanti.var")
+var 
+```
+
+
+The different components can be accessed as follow:
+
+```{r}
+# Coordinates
+head(var$coord)
+# Cos2: quality on the factor map
+head(var$cos2)
+# Contributions to the dimensions
+head(var$contrib)
+```
+
+Now we will describe how to visualize the variables colored by groups. 
+Then it makes sense to highlight variables according to either 
+- their quality of representation on the factor map or 
+- their contributions to the dimensions.
+
+Correlation between the variables and dimensions. 
+The R code below plots the variables colored by groups.
+We use repel = TRUE, to avoid text overlapping.
+
+```{r}
+fviz_mfa_var(res, "quanti.var", palette = "jco", repel = TRUE)
+```
+
+To make the plot more readable, we can use geom = c(“point”, “text”) instead of geom = c(“arrow”, “text”). 
+We can also change the legend position from “right” to “bottom”, using the argument legend = “bottom”:
+
+```{r}
+fviz_mfa_var(res, "quanti.var", palette = "jco", repel = TRUE, geom = c("point", "text"), legend = "bottom")
+```
+
+Briefly, the graph of variables (correlation circle) shows the relationship between variables, the quality of the representation of variables, as well as, the correlation between variables and the dimensions.
+Positive correlated variables are grouped together, whereas negative ones are positioned on opposite sides of the plot origin (opposed quadrants).
+The distance between variable points and the origin measures the quality of the variable on the factor map. 
+Variable points that are away from the origin are well represented on the factor map.
+For a given dimension, the most correlated variables to the dimension are close to it.
+
+In this case we observe that variables like Color.Intensity, Acid and Attack.Intensity are highly correlated, and are the one who better represent the first dimension. Which may indicate a relationship between the color of the orange and the acidity of it.
+The second dimension instead is represented mainly by the Odor.Intensity attribute and the bitterness and pulp attributes.
+Moreover the Bitter and Odor.Intensity attributes are close in the graph, which may indicate a relationship between the intensity of the Odor and the bitterness of the orange juice.
+We can also observe how opposite attributes are coherently represented in the plot.
+For example, Sweet and Bitter, which represent opposite tastes, are in opposite quadrants.
+
+
+The contribution of the variables (in %) to the definition of the dimensions can be visualized using the function fviz_contrib().
+Variables are colored by groups.
+
+```{r}
+# Contributions to dimension 1
+fviz_contrib(res, choice = "quanti.var", axes = 1,
+             palette = "jco")
+```
+
+Then we can plot the contribution to the second dimension.
+
+```{r}
+# Contributions to dimension 2
+fviz_contrib(res, choice = "quanti.var", axes = 2,
+             palette = "jco")
+```
+
+The red dashed line on the graph above indicates the expected average value, If the contributions were uniform. 
+The most contributing variables can be highlighted on the scatter plot using the argument col.var = “contrib”. This produces a gradient colors, which can be customized using the argument gradient.cols.
+
+
+```{r}
+fviz_mfa_var(res, "quanti.var", col.var = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE,
+             geom = c("point", "text"))
+```
+Similarly, you can highlight variables using their cos2 values representing the quality of representation on the factor map. 
+If a variable is well represented by two dimensions, the sum of the cos2 is closed to one. For some of the row items, more than 2 dimensions might be required to perfectly represent the data.
+
+```{r}
+# Color by cos2 values: quality on the factor map
+fviz_mfa_var(res, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             col.var.sup = "violet", repel = TRUE)
+```
+
+To create a bar plot of variables cos2:
+
+```{r}
+fviz_cos2(res, choice = "quanti.var", axes = 1)
+```
+### Individuals
+
+Now it is useful to plot the individuals and analyze their relationship with the groups of variables.
+
+```{r}
+ind <- get_mfa_ind(res)
+ind
+```
+
+
+To plot individuals, use the function fviz_mfa_ind().
+By default, individuals are colored in blue. 
+However, like variables, it’s also possible to color individuals by their cos2 values:
+
+```{r}
+fviz_mfa_ind(res, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+
+Individuals with similar profiles are close to each other.
+The first dimension, opposes wines 12 and 4 against for example, 3, 2 and 11.
+As explained before, the first dimension is more associated with the Color.Intensity and the Acidity of the juice, and has opposite correlation with the Tipicity. 
+Therefore, the orange juices with number 12 and 4 are the one having stronger color and acid taste, while the 3, 2 and 11 have high tipicity, being in the same direction of the Tipicity attribute.
+The second dimension is mostly correlated with the orange juice number 5.
+The second dimension describes the juices having the strongest odor and a bitter taste.
+The orange juices 7 and 8 for example, are in the opposite direction of the second dimension, which may indicate that they are the one having less odor and a more sweet taste.
+Regarding the sweetness, orange juices 10 and 1 lay in the direction of the sweet attribute, which may indicate that they are the most sweet orange juices.
+
+After having considered the individuals as seen by every group, it may be useful to inspect the graph of the individuals for single groups.
+The results for individuals obtained from the analysis performed with a single group are named partial individuals. 
+In other words, an individual considered from the point of view of a single group is called partial individual.
+
+In the default fviz_mfa_ind() plot, for a given individual, the point corresponds to the mean individual or the center of gravity of the partial points of the individual. That is, the individual viewed by all groups of variables.
+
+For a given individual, there are as many partial points as groups of variables.
+
+The graph of partial individuals represents each wine viewed by each group and its barycenter. To plot the partial points of all individuals:
+
+```{r}
+fviz_mfa_ind(res, partial = "all") 
+```
+
+Here we can inspect each orange juice as seen by each group.
+For example we can see that orange juice n.4 as described before, has high values of acidity and color intensity, and this characteristics are mostly described by the Intensity group of variables, while the Taste group tends to give a description of it less related to such attributes.
+Another example is for instance orange juice n.11 to which the Taste group assign high values in the second dimension, describing it as a bitter juice, with a strong odor, while the Intensity group tends to give an opposite opinion with regards to these attributes.
+Finally what we observe is that in each orange juice, the length of the two segment assigned to each group, are almost always identical between each other, and pointing in opposite directions.
+This means that the two group describe the orange juices mostly in opposite way, and with the same magnitude. (MAKES SENSE????)
+
+To further inspect the results, we plot the partial axes.
+The graph of partial axes shows the relationship between the principal axes of the MFA and the ones obtained from analyzing each group using PCA (for groups of continuous variables).
+
+```{r}
+fviz_mfa_axes(res)
+```
+
