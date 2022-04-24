@@ -16,7 +16,7 @@ rm(list = ls())
 
 ```{r}
 # install needed packages
-#install.packages(c("FactoMineR", "factoextra", "gplots", "corrplot"))
+#install.packages(c("FactoMineR", "factoextra", "gplots", "corrplot", "gridExtra"))
 ```
 
 ```{r, results='hide'}
@@ -115,7 +115,7 @@ fviz_screeplot(res.ca, addlabels = TRUE, ylim = c(0, 4), ggtheme = theme_get())
 
     This means that in order to do a complete analysis, we'll need to take into consideration also the other axes, besides the first 2: for instance we can see that the variance captured by the 3rd and 4th dimensions is around 6.2%, which is still a pretty high value, compared to the one of the 1st factorial plane.
 
-### Simultaneous representation of responents and words
+### Simultaneous representation of respondents and words
 
 Let's build some meaningful plots, since the full CA plot contains lots of overlapping points.
 
@@ -129,15 +129,15 @@ The function fviz_ca_biplot() of the package "factoextra" or the function plot.C
 ?fviz_ca_biplot # provides ggplot-based elegant visualizations of CA outputs
 ```
 
-To better render the graph, we limit the number of displayed labels by visualizing only the first 30 words contributing more to the first factorial plane, and we put the labels only on the words, while we plot only the "point" shape for the passengers.
+To better render the graph, we limit the number of displayed labels by visualizing only the 30 words contributing more to the first factorial plane, and we put the labels only on the words, while we plot only the "point" shape for the repsondents.
 
 ```{r}
-#options(ggrepel.max.overlaps =Inf) # max number of allowed overlaps
+options(ggrepel.max.overlaps =Inf) # max number of allowed overlaps
 
 fviz_ca_biplot(res.ca, alpha.row = 0.4, select.col=list(contrib=30), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
 ```
 
-Rows are represented as blue points and cols as red triangles. The distance between any row points or column points gives a measure of their similarity (or dissimilarity).
+Rows are represented as blue points and columns as red triangles. The distance between any row points or column points gives a measure of their similarity (or dissimilarity).
 
 Row points (i.e. passengers) with similar profile (i.e. using common words in their answers) are closed on the factor map. The same holds true for column points, i.e. for "similar" words.
 
@@ -169,7 +169,7 @@ head(res.ca$col$cos2)
 
 #### Similarities between words
 
-In order to interpret the similarities among words, let'first plot them on the first factorial plane
+In order to interpret the similarities among words, let's first plot them on the first factorial plane
 
 ```{r}
 options(ggrepel.max.overlaps =Inf) # max number of allowed overlaps 
@@ -192,7 +192,7 @@ The above plot shows how the first factorial plane captures the variance in the 
 
 What we can see is:
 
--   the *1st axes* separates (on the right) words regarding the staff of the railway company form the rest of the words. Indeed on the right of the plot we have a cluster of words such as "staff", "english", "speaking", "crew", "speak", which are all related to the staff and, in particular, to their language skills.
+-   the *1st axes* separates (on the right) words regarding the staff of the railway company from the rest of the words. Indeed on the right of the plot we have a cluster of words such as "staff", "english", "speaking", "crew", "speak", which are all related to the staff and, in particular, to their language skills.
 
 -   While on the left side of the axes we have words related to other aspects of the quality of the night-rail service of the company, such as words related to "comfort" ("seats", "cabins", "beds"), and also to "cleanliness" ("cleanliness", "toilets")
 
@@ -200,9 +200,9 @@ What we can see is:
 
 -   We can identify other groups of similar words. For instance, we can spot some words related to food, which includes words such as "need", "food", "dining", grouped together according to the 1st dimension. Also the words "larger", "bigger", seats", "space" clearly identify a group related to a dimensional aspect. Another interesting similarity is the one among the words "prices", "ticket".
 
--   However, the groups we identified around the origin of the axes, are not clearly understandable, since the points are very closed to the origin. The only clearly identifiable groups of similar words in this 1st factorial plane are the one including words related to the staff, and the one regarding the "food" aspect.
+-   However, the groups we identified around the origin of the axes are not clearly understandable, since the points are very closed to the origin. The only clearly identifiable groups of similar words in this 1st factorial plane are the one including words related to the staff, and the one regarding the "food" aspect.
 
-That's why it may be useful to study word similarities also by looking at the biplot with the 3rd and 4th axes, which still capture more than 6% of the overall variance:
+That's why it may be useful to study word similarities also by looking at the biplot with the 3rd and 4th axes, which still captures more than 6% of the overall variance:
 
 ```{r}
 fviz_ca_col(res.ca, axes = c(3,4), select.col=list(contrib=30), repel = TRUE) 
@@ -218,7 +218,7 @@ What we can see is:
 
 -   By focusing on the 4th axes, we can notice other clusters of words, such as the words "cleanliness", "clean", "toilets", all related to the "cleanliness" aspect.
 
--   A very interesting property of this plot, related to the grouping of the 'similar' words, is related to the separation between the words "sleeping" and "bathrooms" which are in opposite sides w.r.t. the 4th axes: this indicates a strong distance among the 2 words which, as we may expect, do not usuallty appear together.
+-   A very interesting property of this plot, related to the grouping of the 'similar' words, is related to the separation between the words "sleeping" and "bathrooms" which are in opposite sides w.r.t. the 4th axes: this indicates a strong distance among the 2 words which, as we may expect, do not usually appear together.
 
 ### Row analysis
 
@@ -263,9 +263,9 @@ To better visualize the graph, we select only the 30 participants that contribut
 fviz_ca_row(res.ca,  select.row=list(contrib=30), repel = TRUE) 
 ```
 
-In order to find some similarities among the participants, we should add to the plot also the words: this will allow to group participants depending on the words they use inside their answers; this means that we'll find similar participants, according to the words they used in their answers to the openended question.
+In order to find some similarities among the participants, we should add to the plot also the words: this will allow to group participants depending on the words they use inside their answers; this means that we'll find similar participants, according to the words they used in their answers to the open-ended question.
 
-In order to do that, let's visualize side by side the 2 biplots (we could plot the biplot with the simultaneous representation of rows and columns, but it's not so clear due to the high number of overlapping), by considering only the first most contributing points :
+In order to do that, let's visualize side by side the 2 biplots (we could plot the biplot with the simultaneous representation of rows and columns, but it's not so clear due to the high number of overlapping), by considering only the most contributing points :
 
 ```{r}
 library(gridExtra) # to create subplots
@@ -276,7 +276,7 @@ grid.arrange(g1,g2,nrow=1, ncol=2)
 
 The main similarities among participants we can spot from the above plot are (pay attention to the different scales of the axes between the 2 plots):
 
--   Participants 2788 and 2963 are closely related to each other in the position of the word "less", this means that their answers include the word
+-   Participants 2788 and 2963 are closely related to each other in the position of the word "less", this means that their answers include that word.
 
 -   In the right side of the 1st axes, we have a group of participants who suggested to the company improvements related to the "staff": indeed these row points (such as 2776, 3194, 3020, 2961,...) are positioned in the same zone where are located also words related to the "staff" aspect.
 
@@ -294,7 +294,7 @@ grid.arrange(g1,g2,nrow=1, ncol=2)
 
 We can spot the following similarities:
 
--   We have a group of participants with a negative coordinate in the 3rd dimension that suggested improvements for what regards the "air conditioning" aspect: these users are, for instance, 2838, 3238, 3296, 3259, 3233)
+-   We have a group of participants with a negative coordinate in the 4th dimension that suggested improvements for what regards the "air conditioning" aspect: these users are, for instance, 2838, 3238, 3235, 3296, 3259, 3233)
 -   Participants 3202, 3190, 3180 are in the plot area corresponding to words related to the "cleanliness" aspect, this indicates that in their answers they suggest to the company to improve this aspect
 -   In the top of the 3rd axis, we have a group of participants that are related to the words "bathrooms", "door" ( the participants with a coordinate value above 2)
 
@@ -304,15 +304,15 @@ Best represented words in the first factorial plane are those with the highest q
 
 We know that the values of the cos2 of each row or column are comprised between 0 and 1: therefore the sum of the cos2 for row/column points over all the CA dimensions is equal to one.
 
-Hence, we can say that the quality of representation of a row or column in n dimensions is simply the sum of the squared cosine of that row or column over the n considered dimensions.
+Hence, we can say that the quality of representation of a word/column in n dimensions is simply the sum of the squared cosine of that column over the n considered dimensions.
 
 In our case, if a word is well represented by the first two dimensions, the sum of the cos2 is closed to one.
 
-Let's create a bar plot of the words (i.e. columns) cos2 using the function fviz_cos2() of the faxtoextra package:
+Let's create a bar plot of the words cos2 using the function fviz_cos2() of the faxtoextra package:
 
 ```{r}
 # Cos2 of rows on Dim.1 and Dim.2
-fviz_cos2(res.ca, choice = "col", axes = 1:2, repel=TRUE, top=20, ggtheme=theme_get()) # show only top 15
+fviz_cos2(res.ca, choice = "col", axes = 1:2, repel=TRUE, top=30, ggtheme=theme_get()) # show only top 15
 ```
 
 The above bar plot shows, in descending order, the quality of representation of columns (i.e. words) on the first 2 dimensions.
@@ -325,7 +325,7 @@ Basically, these are the words related to the "staff" aspect (except for "less")
 
 When deciding to analyze text data we should decide what is the minimum word count starting from which you choose to include words.
 
-Typically, hen doing CA for textual data, we shoul change the minimum threshold for the word frequency in order to verify the stability of the obtained representation, i.e. to see if we obtain a similar biplot.
+Typically, we should change the minimum threshold for the word frequency in order to verify the stability of the obtained representation, i.e. to see if we obtain a similar biplot.
 
 The analysis we performed until now is done by considering only words used at least 5 times among all the answers.
 
@@ -373,15 +373,15 @@ Now we have only 25 dimensions.
 res.ca$eig
 ```
 
-Biplot:
+Again,the first eigenvalues have high values, indicating a quite strong association among words and participants.
+
+Let's visualize the biplot:
 
 ```{r}
 fviz_ca_biplot(res.ca10, alpha.row = 0.4, select.col=list(contrib=30), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
 ```
 
-In order to compare, we put the plots one after the other.
-
-On the left we plot the biplot of the previous analysis, while on the right the new one:
+In order to compare this plot with the one of the previous analysis, we put the plots one after the other: on the left we plot the biplot of the previous analysis, while on the right the new one:
 
 ```{r}
 g1<- fviz_ca_biplot(res.ca, alpha.row = 0.2, select.col=list(contrib=20), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
@@ -391,4 +391,4 @@ grid.arrange(g1,g2,nrow=1, ncol=2)
 
 We can identify similar associations among words:
 
--   even if the absolute words positioning changes (in the 2nd case the 1st factorial plane captures more than 13% of the overall variance), similar words are still cllosed to each other (e.g. "english and "staff", "air" and "conditioning", "size" and "space"
+-   even if the absolute word positioning changes (in the 2nd case the 1st factorial plane captures more than 13% of the overall variance), similar words are still closed to each other (e.g. "english and "staff", "air" and "conditioning", "size" and "space"
