@@ -1,5 +1,5 @@
 ---
-title: "CA on the 'Mortality' dataset "
+title: " Correspondence Analysis (CA) for textual data analysis"
 author: "Denaldo Lapi, Samy Chouti, Franscesco Aristei"
 date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
@@ -16,7 +16,7 @@ rm(list = ls())
 
 ```{r}
 # install needed packages
-#install.packages(c("FactoMineR", "factoextra", "gplots", "corrplot"))
+#install.packages(c("FactoMineR", "factoextra", "gplots", "corrplot", "gridExtra"))
 ```
 
 ```{r, results='hide'}
@@ -28,38 +28,53 @@ library(factoextra) # for ggplot visualizations
 ## Exploratory data analysis
 
 ```{r}
-# load the data
-data("mortality")
+# Read the dataset
+ca_data<-read.table("words_english.txt",header=TRUE,row.names=1)
 ```
 
 ```{r}
+# check the dimensions of the frequency table
+dim(ca_data)
+```
+
+As we will briefly see, the dataset is composed by 60 words (columns) and 274 answers/respondents.
+
+```{r}
 # inspect the dataset
-head(mortality) # first rows
+head(ca_data) # first rows
 ```
 
 Let's see a brief summary of the main statistics of the dataset:
 
 ```{r}
-summary(mortality)
+#summary(ca_data) # output too long to visualize
 ```
 
-The "mortality" dataset is a data frame with 62 rows (the different causes of death) and 18 columns. Each column corresponds to an age interval (15-24, 25-34, 35-44, 45-54, 55-64, 65-74, 75-84, 85-94, 95 and more) in a year. The first 9 columns correspond to data in 1979 and the 9 last columns to data in 2006. In each cell, the count of deaths for a cause of death in an age interval (in a year) is given.
+The data corresponds a survey conducted by a railway company to know the opinion and satisfaction of their passengers concerning high-quality night rail service. Passengers were asked to rate their satisfaction about 14 different aspects related to comfort (general, cabin, bed, seat), cleanliness (common areas, cabin, toilet), staff (welcome attention, trip attention, language skills) and others (cabin room, air conditioning, punctuality, general aspects). Each aspect was scored on a 11 point Likert scale from 0 (very bad) to 10 (excellent).
 
-The first 9 cols correspond to data in 1979 and the 9 last columns correspond to data in 2006.
+Additionally, an openended question was added to the questionnaire asking for the aspects that should be improved. This question required free and spontaneous answers in English.
 
-We will perform PCA considering only the data corresponding to 1979 (the first 9 columns)
+Respondents × words *frequency table* (the table we read from the *.csv* file) was built following the classical preprocessing steps. Stop words were used and lemmatization from plural to singular form was performed.
 
-## CA on the first 8 columns
+Only the words used at least 5 times among all the answers were kept. Thus, 60 distinct words and 829 occurrences were kept for 274 respondents.
+
+## CA
+
+Let's now apply CA to the given frequency table
 
 ```{r}
-res.ca <- CA(mortality[, 1:8], graph = FALSE) # don't show CA graph
+res.ca <- CA(ca_data, graph = FALSE) # don't show CA graph
 ```
 
-Due to the high number of row points , the CA graph (factor map) is obviously very difficult to interpret because of many overlappings, that's why we'll try to visualize the result of the CA in a smarter way. At first, let's see a summary of the performed CA to obtain some first insights:
+Due to the high number of row and column points , the CA graph (factor map) is obviously very difficult to interpret because of many overlapping, that's why we'll try to visualize the result of the CA in a smarter way.
+
+At first, let's see a summary of the performed CA to obtain some first insights:
 
 ```{r}
 summary(res.ca)
 ```
+
+From the above summary, we can see that the CA method created 59 dimensions: this number corresponds to the number of columns (i.e. words) minus 1.
 
 ```{r}
 # obtained  CA object
@@ -72,36 +87,39 @@ Let's now analyze in details the outputs of the CA.
 
 ### Eigenvalues
 
-The first aspect we typically look at in FA methods are eigenvalues, i.e. we try to understand how the newly created axes/dimensions are able to capture the deviation from independence of the original contingency table, that is how the overall inertia of our cloud of points is explained by the new axes.
+The first aspect we typically look at in FA methods are eigenvalues, i.e. we try to understand how the newly created axes/dimensions are able to capture the deviation from independence, i.e. how the overall inertia of our cloud of points is explained by the new axes.
 
 ```{r}
 # eigenvalues and explained inertia
 res.ca$eig
 ```
 
+We can notice pretty large eigenvalues in the first dimensions: this indicates a quite strong association between words and respondents.
+
 #### Scree Plot
 
-Let's graphically visualize the explained variance by means of a Scree Plot
+Let's graphically visualize the variance explained by the first 10 dimensions by means of a Scree Plot
 
 ```{r}
 ?fviz_screeplot
 ```
 
 ```{r}
-fviz_screeplot(res.ca, addlabels = TRUE, ylim = c(0, 65),ggtheme = theme_get())
+fviz_screeplot(res.ca, addlabels = TRUE, ylim = c(0, 4), ggtheme = theme_get())
 ```
 
-***Which percentage of variability is explained by the first two dimensions?***
+-   **Which percentage of variability is explained by the first two dimensions?**\
+    From the graph above and from the values seen before, we can see that the first 2 dimensions explain 6.78% of the variability of the entire cloud of points.
 
-From the graph above and from the values seen before, we can easily conclude that the first 2 dimensions explain 91.31574% of the variability of the entire cloud of points, therefore we can conclude that the first two dimensions are enough to describe the whole contingency table, since they capture a very large percentage of the deviation from independence of our original dataset.
+    Since the performed CA builds 59 dimensions, as expected the inertia is spread along all the components.
 
-Therefore, an analysis of the plane consisting of the first 2 dimensions would be sufficient to extract conclusions from the performed CA.
+    This means that in order to do a complete analysis, we'll need to take into consideration also the other axes, besides the first 2: for instance we can see that the variance captured by the 3rd and 4th dimensions is around 6.2%, which is still a pretty high value, compared to the one of the 1st factorial plane.
 
-### Plots
+### Simultaneous representation of respondents and words
 
-Let's build some meaningful plots, since the full CA plot contains lots of overlapping points
+Let's build some meaningful plots, since the full CA plot contains lots of overlapping points.
 
-The function fviz_ca_biplot() of the package "factoextra" or the function plot.CA() of "FactoMineR of can be used to draw the biplot of rows and columns variables, i.e. to provide a simultaneous representation of rows and columns.
+The function fviz_ca_biplot() of the package "factoextra" or the function plot.CA() of "FactoMineR" can be used to draw the biplot of rows and columns variables, i.e. to provide a simultaneous representation of rows and columns.
 
 ```{r}
 ?plot.CA
@@ -111,289 +129,266 @@ The function fviz_ca_biplot() of the package "factoextra" or the function plot.C
 ?fviz_ca_biplot # provides ggplot-based elegant visualizations of CA outputs
 ```
 
-To better render the graph, we limit the number of displayed labels by changing the number of overlaps:
+To better render the graph, we limit the number of displayed labels by visualizing only the 30 words contributing more to the first factorial plane, and we put the labels only on the words, while we plot only the "point" shape for the repsondents.
 
 ```{r}
-options(ggrepel.max.overlaps =5) # max number of allowed overlaps  
-fviz_ca_biplot(res.ca, repel = TRUE) # repel avoids text overlapping
-#plot.CA(res.ca, autoLab="yes", shadowtext="True", graph.type = "ggplot", cex=0.7)
+options(ggrepel.max.overlaps =Inf) # max number of allowed overlaps
+
+fviz_ca_biplot(res.ca, alpha.row = 0.4, select.col=list(contrib=30), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
 ```
 
-The graph above represents all the row and column points. As we can see, due to the presence of a lot of row points and due to overlapping labels, the graph is pretty difficult to be read.
+Rows are represented as blue points and columns as red triangles. The distance between any row points or column points gives a measure of their similarity (or dissimilarity).
 
-Rows are represented as blue points and cols as red triangles. The distance between any row points or column points gives a measure of their similarity (or dissimilarity). Row points with similar profile are closed on the factor map. The same holds true for column points.
+Row points (i.e. passengers) with similar profile (i.e. using common words in their answers) are closed on the factor map. The same holds true for column points, i.e. for "similar" words.
 
-#### Interpretation of the 1st factorial plane
+We can see that many points are not very well represented by the 1st factorial plane since very close to the origin, that's why we'll take into consideration also the 3rd and 4th axes, in order to obtain more complete interpretations.
 
-In order to get a useful interpretation of the 1st factorial plane we decide to show only the 10 row points contributing more to the first 2 dimensions, while we add some transparency to the other points.
+Let's now analyze separately rows and columns in order to study the similarities among words and passengers.
 
-In order obtain the desired graph it is enough to use the plot.CA function as shown in the code snippet below, where we also add the parameter "cex" to reduce the size of the labels
+### Column analysis
 
 ```{r}
-?plot.CA
+#res.ca$col
+# Output to long to visualize
 ```
 
 ```{r}
-options(ggrepel.max.overlaps = Inf) # max number of allowed overlaps  
-plot.CA(res.ca, selectRow ="contrib 10", cex=0.65, unselect = 0.92, graph.type = "ggplot", autolab="yes")
+# coordinates of the column points (i.e. words) in the new dimensions
+head(res.ca$col$coord) 
 ```
 
-Let's now to the following questions:
+```{r}
+# contribution to the CA axes
+head(res.ca$col$contrib)
+```
 
--   ***Interpret the first factorial plane (dimensions 1 and 2)***
+```{r}
+# quality of representation
+head(res.ca$col$cos2)
+```
 
--   ***Study the similarities between age groups according to causes of death***
+#### Similarities between words
 
--   ***Study the similarities between causes of death according to age groups***
+In order to interpret the similarities among words, let's first plot them on the first factorial plane
 
--   ***Which are the main associations between age groups and causes of death?***
+```{r}
+options(ggrepel.max.overlaps =Inf) # max number of allowed overlaps 
+# visualize only col points
+fviz_ca_col(res.ca, repel = TRUE) 
+```
 
-    \
+The above plot shows the relationships between words: words with a similar profile are grouped together. while negatively correlated words are positioned on opposite sides of the plot origin (opposed quadrants).
 
-The first factorial plane shows that most of the deviation from independence (i.e. inertia of the cloud of points) comes from the separation of the young age ranges, i.e. 15-24, 25-34, 35-44 and the rest.
+The distance between the points and the origin measures the quality of the column points on the factor map. Column points that are away from the origin are well represented on the factor map. What we can see, in this case, is that many points are very closed to the origin and so we'll need to look also at the other axes.
 
-This plane is able to cluster together causes of death that are more specific to certain age ranges and it also create groups of "similar" age ranges on the basis of the causes of death that they share.
+To better visualize the graph, we select only the 30 words that contribute more to the first factorial plane:
 
--   In particular, the 1st dimension of the plot separates young people (on the right side) from old people (on the left of the origin): it puts in ascending order the ages from the right to the left of the axes. We can see that it also creates a kind of separation between 2 kinds of diseases: on the right there are causes of death not related to illness conditions, while on the left there are illness realated casues of death.
+```{r}
+options(ggrepel.max.overlaps =50)
+fviz_ca_col(res.ca,  select.col=list(contrib=30), repel = TRUE, geom=c("point", "text")) 
+```
 
--   The 2nd dimension separates the age-range 15-24 (on the top) from the rest of the ranges: in particular it shows an opposition of that range with the range 45-54 and 55-64, that are the middle age ranges. This 2nd dimension also puts in opposition tumour related diseases and "Chronic liver disease" with "Road accidents" (on the top of the 2nd dimension) and other types of diseases, such as heart diseases, "Cerebrovascular disease", "Other ill-defined symptoms and conditions", "Other accidents, "Events of undetermined intention" and "Suicides".
+The above plot shows how the first factorial plane captures the variance in the column points (i.e. the words), and it also shows the relationships between the words.
 
--   The position of each cause of death in the first factorial plane shows the ranges of age it affects more. For instance, we can immediately see that causes of death in the first quadrant of the plot are mostly related to young age ranges: for instance "Road accidents" affects more people in the range 15-24 and then 25-34, as expected, since young people are typically more reckless when driving. "Events of undetermined intention", "Other accidents" and "Suicides" are close to the ranges 25-34 and 35-44. While "Other ill-defined symptoms and conditions", "Other heart disease", "Cerebrovascular disease" affects more the older people in the ranges 85-94 and 75-84: again this is an expected behavior. In the lower part of the graph we have all the diseases related to the the middle age ranges, i.e. 35-44, 45-54, 55,64 and also 65-75: the typical diseases for this categories are various types of tumours and "Chronic liver disease".
+What we can see is:
 
--   While the position of each range age shows the similarities between the various age ranges, depending on the causes of death: for instance, we can say that the ranges 85-94 and 75-84 are very closed to each other since they share many causes of death; we can say the same for the ranges 55-64, 35-44, 45-54 and evden 65-74 which represent the middle ages; the same reasoning can be also done for the ranges 25-34 and 15-24.
+-   the *1st axes* separates (on the right) words regarding the staff of the railway company from the rest of the words. Indeed on the right of the plot we have a cluster of words such as "staff", "english", "speaking", "crew", "speak", which are all related to the staff and, in particular, to their language skills.
 
-*Overall, what we can say is that the 1st factorial plane is very able to cluster the age-ranges based on the types of disease most frequent for each range and, similarly, it is able to group together causes of deaths that regards specific ages and, finally, it is able to create meaningful associations between age groups and the diseases that typically affect them.*
+-   While on the left side of the axes we have words related to other aspects of the quality of the night-rail service of the company, such as words related to "comfort" ("seats", "cabins", "beds"), and also to "cleanliness" ("cleanliness", "toilets")
 
-#### Row analysis
+-   the 2nd axes clearly separates the word "less" (with very high coordinate value) from the rest of the words. Also the word "night" is pretty far from the others. For what regards the other words, almost all of them have very small coordinate value in the 2nd axes.
 
-Let's now briefly analyze separately the row points, i.e. the causes of death.
+-   We can identify other groups of similar words. For instance, we can spot some words related to food, which includes words such as "need", "food", "dining", grouped together according to the 1st dimension. Also the words "larger", "bigger", seats", "space" clearly identify a group related to a dimensional aspect. Another interesting similarity is the one among the words "prices", "ticket".
+
+-   However, the groups we identified around the origin of the axes are not clearly understandable, since the points are very closed to the origin. The only clearly identifiable groups of similar words in this 1st factorial plane are the one including words related to the staff, and the one regarding the "food" aspect.
+
+That's why it may be useful to study word similarities also by looking at the biplot with the 3rd and 4th axes, which still captures more than 6% of the overall variance:
+
+```{r}
+fviz_ca_col(res.ca, axes = c(3,4), select.col=list(contrib=30), repel = TRUE) 
+```
+
+What we can see is:
+
+-   The 3rd axes creates clusters of similar words depending on the quality aspect of the railway service they are related to: for instance, we can clearly see the words "conditioning", "air", cold" visualized very close to each other (very similar coordinate value on the 3rd axes), and we know they are related to the "air conditioning" aspect.
+
+    Also words related to "comfort" are close to each other: "size", "space", "rooms". In particular, notice that all these words are related to dimension features.
+
+    In the lower part of the 3rd axes ( with negative coordinates) we have words related to economical aspects, in particular the words "prices" and "ticket".
+
+-   By focusing on the 4th axes, we can notice other clusters of words, such as the words "cleanliness", "clean", "toilets", all related to the "cleanliness" aspect.
+
+-   A very interesting property of this plot, related to the grouping of the 'similar' words, is related to the separation between the words "sleeping" and "bathrooms" which are in opposite sides w.r.t. the 4th axes: this indicates a strong distance among the 2 words which, as we may expect, do not usually appear together.
+
+### Row analysis
+
+Let's now briefly analyze separately the row points, i.e. the different passengers' answers.
 
 ```{r}
 #head(res.ca$row)
 # Output to long to visualize
 ```
 
-##### Coordinates of row points
-
-Let's show the coordinates of the row points, i.e. the causes of death, into the newly created dimensions
-
 ```{r}
+# coordinates of the row points into the newly created dimensions
 head(res.ca$row$coord) # coordinates of the first 6 row points
 ```
 
-##### 
-
-Let's see how this row points are displayed into the first factorial plane, by showing only the 15 most contributing points to the 1st factorial plane:
-
 ```{r}
-# visualize only row points
-options(ggrepel.max.overlaps = Inf) # max number of allowed overlaps 
-plot.CA(res.ca, selectRow ="contrib 15", cex=0.65, unselect = 0.92, invisible = "col", graph.type = "ggplot", autolab="yes") # show only most contributing points
-```
-
-The above plot shows the relationships between row points: rows with a similar profile are grouped together, while negatively correlated rows are positioned on opposite sides of the plot origin (opposed quadrants). The distance between row points and the origin measures the quality of the row points on the factor map. Row points that are away from the origin are well represented on the factor map.
-
-This plot shows again 3 main clusters of causes of death: on the 1st quadrant we have a group of causes of death regarding younger people (as we will see on the graph of column data points), on the bottom we have the diseases regarding middle age people and on the 2nd quadrant we have another group of diseases regarding the older people.
-
-##### Quality of representation of rows
-
-The result of the analysis shows that the contingency table has been successfully represented in two dimensional space using correspondence analysis, indeed the first two dimensions are sufficient to retain more than 90% of the total inertia (variation) contained in the data.
-
-However, not all the points are equally well displayed in the two dimensions.
-
-The quality of representation of the rows on the new dimensions is described by the squared cosine (cos2) or the squared correlations.
-
-The cos2 measures the degree of association between rows/columns and a particular axis. The cos2 of row points can be extracted as follow:
-
-```{r}
-head(res.ca$row$cos2,3) # quality of representation of first 3 row points
-```
-
-The values of the cos2 are comprised between 0 and 1. The sum of the cos2 for rows over all the CA dimensions is equal to one.
-
-The quality of representation of a row or column in n dimensions is simply the sum of the squared cosine of that row or column over the n considered dimensions.
-
-If a row item is well represented by two dimensions, the sum of the cos2 is closed to one.
-
-By using the fviz_ca_row() function of "factoextra" we can color row points by their cos2 values.
-
-As shown below, by using gradient.cols = c("white", "blue", "red") we have that:
-
--   rows with low cos2 values will be colored in "white"
--   rows with mid cos2 values will be colored in "blue"
--   rows with high cos2 values will be colored in "red"
-
-```{r}
-# Color row points by cos2 value
-options(ggrepel.max.overlaps = 7) # max number of allowed overlaps 
-fviz_ca_row(res.ca, col.row = "cos2",
-             gradient.cols = c("white", "blue", "red"), 
-             repel = TRUE)
-
-```
-
-We could also change the transparency of the row points according to their cos2 values using the option alpha.row = "cos2":
-
-```{r}
-# Change the transparency by cos2 values
-options(ggrepel.max.overlaps = 7) # max number of allowed overlaps 
-fviz_ca_row(res.ca, repel=TRUE, alpha.row="cos2")
-```
-
-It's also possible to create a bar plot of the rows cos2 using the function fviz_cos2() of the faxtoextra package:
-
-```{r}
-?fviz_cos2
+# # contribution to the CA axes
+head(res.ca$row$contrib) 
 ```
 
 ```{r}
-# Cos2 of rows on Dim.1 and Dim.2
-fviz_cos2(res.ca, choice = "row", axes = 1:2, repel=TRUE, top=15, ggtheme=theme_get()) # show only top 15
+# quality of representation
+head(res.ca$row$cos2) 
 ```
 
-The above plot shows the 15 row points better represented by the first 2 dimensions, i.e. whose intertia is better captured by the first factorial plane.
+#### Similarities between respondents
 
-##### Contributions of rows to the dimensions
-
-Let's now see how much each row point contributes to the inertia captured by each new dimension
-
-```{r}
-head(res.ca$row$contrib)
-```
-
-The row variables with the larger value, contribute the most to the definition of the dimensions.
-
-The function fviz_contrib() of factoextra package can be used to draw a bar plot of row contributions.
-
-The bar plot of the total contribution to dimension 1 and 2 can be obtained as follow:
-
-```{r}
-fviz_contrib(res.ca, choice = "row", axes = 1:2, top = 15, ggtheme=theme_get()) # just show the top 15 contributing rows
-```
-
-The rows "Road accidents", "Suicides", "Other accidents" are three the most important rows in the definition of the first two dimensions.
-
-In order to see the rows, i.e. the causes of death, that contribute most to the first dimension:
-
-```{r}
-fviz_contrib(res.ca, choice = "row", axes = 1, top = 15, ggtheme=theme_get()) # just show the top 15 contributing rows
-```
-
-***What are the three causes of death most influencing the formation of the first principal component?***
-
-The rows "Road accidents", "Suicides", "Other accidents" are the three most important cause of death in the definition of the first dimension.
-
-As seen for the cos2, the most contributing row points can be highlighted on the plot of row points as follows:
-
-```{r}
-fviz_ca_row(res.ca, col.row = "contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
-             repel = TRUE)
-```
-
-Note that, it's also possible to control the transparency of row points according to their contribution values using the option alpha.row = "contrib", as shown below:
-
-```{r}
-# Change the transparency by contrib values
-fviz_ca_row(res.ca, alpha.row="contrib",
-             repel = TRUE)
-```
-
-#### Column analysis
-
-We can repeat the same analysis done for the rows also for the columns
-
-```{r}
-#head(res.ca$col)
-# Output to long to visualize
-```
-
-##### Coordinates of column points
-
-```{r}
-res.ca$col$coord  # coordinates of the column points (i.e. age ranges) in the new dimensions
-```
-
-Let's visualize how column points are positioned in the first factorial plane
+In order to interpret the similarities among respondents (i.e. rows), let's plot them on the first factorial plane:
 
 ```{r}
 # visualize only col points
-fviz_ca_col(res.ca, repel = TRUE) 
+fviz_ca_row(res.ca, repel = TRUE) 
 ```
 
-The plot above shows the relationships between column points: columns with a similar profile are grouped together, i.e. in our case age-ranges that share many causes of death are clustered together.
+The above plot shows the relationships between the participants of the survey: in particular, the participants with a similar profile, i.e. suggesting similar improvements to the railway company, are grouped together; while negatively correlated participants are positioned on opposite sides of the plot origin (opposed quadrants).
 
-As said before, the CA allows to create groups of age ranges based on the causes of death they share.
+The distance between the points and the origin measures the quality of the points on the factor map. Row points that are away from the origin are well represented on the factor map.
 
-##### Quality of representation of columns
-
-As seen for the row points, the cos2 of col points can be extracted as follow:
+To better visualize the graph, we select only the 30 participants that contribute more to the first factorial plane:
 
 ```{r}
-res.ca$col$cos2 
+fviz_ca_row(res.ca,  select.row=list(contrib=30), repel = TRUE) 
 ```
 
-Let's color column points depending on their cos2 value for the first 2 dimensions:
+In order to find some similarities among the participants, we should add to the plot also the words: this will allow to group participants depending on the words they use inside their answers; this means that we'll find similar participants, according to the words they used in their answers to the open-ended question.
+
+In order to do that, let's visualize side by side the 2 biplots (we could plot the biplot with the simultaneous representation of rows and columns, but it's not so clear due to the high number of overlapping), by considering only the most contributing points :
 
 ```{r}
-# Color by cos2 values: quality on the factor map
-fviz_ca_col(res.ca, col.col = "cos2",
-             gradient.cols = c("white", "blue", "red"), 
-             repel = TRUE)
+library(gridExtra) # to create subplots
+g1 <- fviz_ca_col(res.ca,  select.col=list(contrib=30), repel = TRUE) 
+g2 <-fviz_ca_row(res.ca,  select.row=list(contrib=20), repel = TRUE) 
+grid.arrange(g1,g2,nrow=1, ncol=2)
 ```
 
-As done for rows , we can change the transparency of the col points according to their cos2 values using the option alpha.col = "cos2":
+The main similarities among participants we can spot from the above plot are (pay attention to the different scales of the axes between the 2 plots):
+
+-   Participants 2788 and 2963 are closely related to each other in the position of the word "less", this means that their answers include that word.
+
+-   In the right side of the 1st axes, we have a group of participants who suggested to the company improvements related to the "staff": indeed these row points (such as 2776, 3194, 3020, 2961,...) are positioned in the same zone where are located also words related to the "staff" aspect.
+
+-   We can identify, for instance, a group of users (composed by 3107, 3272, 3233) which suggested improvements related to the "food" aspect.
+
+-   Participants 2682, 2899 used the words "night" and "dinner" in their free answers.
+
+We can repeat the same analysis by considering the biplots with the 3rd and 4th axes.:
 
 ```{r}
-# Change the transparency by cos2 values
-fviz_ca_col(res.ca, repel=TRUE, alpha.col ="cos2")
+g1 <- fviz_ca_col(res.ca, axes = c(3,4), select.col=list(contrib=30), repel = TRUE)
+g2 <-fviz_ca_row(res.ca, axes = c(3,4),  select.row=list(contrib=30), repel = TRUE)
+grid.arrange(g1,g2,nrow=1, ncol=2)
 ```
 
-It's also possible to create a bar plot of cols cos2:
+We can spot the following similarities:
+
+-   We have a group of participants with a negative coordinate in the 4th dimension that suggested improvements for what regards the "air conditioning" aspect: these users are, for instance, 2838, 3238, 3235, 3296, 3259, 3233)
+-   Participants 3202, 3190, 3180 are in the plot area corresponding to words related to the "cleanliness" aspect, this indicates that in their answers they suggest to the company to improve this aspect
+-   In the top of the 3rd axis, we have a group of participants that are related to the words "bathrooms", "door" ( the participants with a coordinate value above 2)
+
+### Best represented words in the first factorial plane
+
+Best represented words in the first factorial plane are those with the highest quality of representation, i.e. the words with the higher values of the squared cosine (cos2).
+
+We know that the values of the cos2 of each row or column are comprised between 0 and 1: therefore the sum of the cos2 for row/column points over all the CA dimensions is equal to one.
+
+Hence, we can say that the quality of representation of a word/column in n dimensions is simply the sum of the squared cosine of that column over the n considered dimensions.
+
+In our case, if a word is well represented by the first two dimensions, the sum of the cos2 is closed to one.
+
+Let's create a bar plot of the words cos2 using the function fviz_cos2() of the faxtoextra package:
 
 ```{r}
-# Cos2 of columns on Dim.1 and Dim.2
-fviz_cos2(res.ca, choice = "col", axes = 1:2, ggtheme=theme_get())
+# Cos2 of rows on Dim.1 and Dim.2
+fviz_cos2(res.ca, choice = "col", axes = 1:2, repel=TRUE, top=30, ggtheme=theme_get()) # show only top 15
 ```
 
-***What are the age intervals best represented in the first factorial plane?***
+The above bar plot shows, in descending order, the quality of representation of columns (i.e. words) on the first 2 dimensions.
 
-The above bar plot shows, in descending order, the quality of representation of columns (i.e. age intervals) on the first 2 dimensions. We can easily see that the best represented age ranges are, in order: 55-64 followed by 15-24, 25-34, 75-84, 45-54, 85-94, 35-44, 65-74
+We can easily see that the best represented words are, in order: "less", "english", "staff", "speak", "crew", "speaking", ...
+
+Basically, these are the words related to the "staff" aspect (except for "less") that in the 1st factorial plane are more distant from the origin.
+
+### Stability of the representation
+
+When deciding to analyze text data we should decide what is the minimum word count starting from which you choose to include words.
+
+Typically, we should change the minimum threshold for the word frequency in order to verify the stability of the obtained representation, i.e. to see if we obtain a similar biplot.
+
+The analysis we performed until now is done by considering only words used at least 5 times among all the answers.
+
+Let's now repeat the CA by taking into consideration words appearing at least 10 times.
+
+At first, let's built our new frequency table:
 
 ```{r}
-?fviz_cos2
+# just transpose the dataframe
+ca_data_t = t(ca_data)
+
+#Consider words that are cited at least 10 times
+ca_data10_t = ca_data_t[apply(ca_data_t, 1, sum)>=10,] 
+ca_data10 = t(ca_data10_t)
+
+# obtain a dataframe
+ca_data10 = data.frame(ca_data10)
 ```
-
-##### Contributions of cols to the dimensions
-
-To see the contribution of each column (age range) to each new dimension:
 
 ```{r}
-head(res.ca$col$contrib)
+# check the dimensions of the frequency table
+dim(ca_data10)
 ```
-
-As done for rows, we can use a bar plot of columns contributions to show the most contributing columns.
-
-The total contribution of each columns to the first 2 dimensions can be obtained as follow:
 
 ```{r}
-fviz_contrib(res.ca, choice = "col", axes = 1:2, ggtheme=theme_get())
+ca_data10
 ```
 
-The age ragnes 15-24, 25-34, 85-94 are the 3 most contributing to the variance of the first 2 dimensions.
+The new table will contain only 26 words.
 
-We can highlight on the biplot the contribution of each column :
+Let's now repeat the CA
 
 ```{r}
-fviz_ca_col(res.ca, col.col =  "contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
-             repel = TRUE)
+res.ca10 <- CA(ca_data10, graph = FALSE) # don't show CA graph
 ```
-
-We can also control the transparency of column points according to their contributions:
 
 ```{r}
-# Change the transparency by contrib values
-fviz_ca_col(res.ca, alpha.col="contrib",
-             repel = TRUE)
+summary(res.ca10)
 ```
+
+Now we have only 25 dimensions.
+
+```{r}
+# eigenvalues and explained inertia
+res.ca$eig
+```
+
+Again,the first eigenvalues have high values, indicating a quite strong association among words and participants.
+
+Let's visualize the biplot:
+
+```{r}
+fviz_ca_biplot(res.ca10, alpha.row = 0.4, select.col=list(contrib=30), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
+```
+
+In order to compare this plot with the one of the previous analysis, we put the plots one after the other: on the left we plot the biplot of the previous analysis, while on the right the new one:
+
+```{r}
+g1<- fviz_ca_biplot(res.ca, alpha.row = 0.2, select.col=list(contrib=20), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
+g2<-fviz_ca_biplot(res.ca10, alpha.row = 0.2, select.col=list(contrib=20), geom.row = c("point"), repel = TRUE) # repel avoids text overlapping
+grid.arrange(g1,g2,nrow=1, ncol=2)
+```
+
+We can identify similar associations among words:
+
+-   even if the absolute word positioning changes (in the 2nd case the 1st factorial plane captures more than 13% of the overall variance), similar words are still closed to each other (e.g. "english and "staff", "air" and "conditioning", "size" and "space"
