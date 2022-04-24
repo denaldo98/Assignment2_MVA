@@ -1,6 +1,8 @@
 ---
 title: "Orange MFA"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 First thing, we have to load the FactoMineR library to apply the MFA and the missMDA library to load the dataset.
@@ -92,7 +94,7 @@ So we applied MFA to the dataset, unit-scaling it.
 Specifically we decided to divide the quantitative variables in two families:
 
 - The first 5 variables give us the intensity of the orange juice and a description of their acidity and sweetness.
-- The last 5 are used to give a description of bitterness, the amount of pulp, and the tipicity of each orange juice.
+- The last 3 are used to give a description of bitterness, the amount of pulp, and the typicity of each orange juice.
 
 
 Now it is useful to visualize the main results obtained after applying the MFA.
@@ -154,9 +156,12 @@ fviz_mfa_var(res, "group")
 ```
 
 
-From the plot, we can observe that the groups give a similar representation of the individuals, in fact, they are close to each other.
-Specifically, we see that for both, the value on the first dimension is close to 1 (around 0.8) which means that the Lg (projected inertia of all the variables of j-th group on v1) value with the first dimension of the MFA is high for both the groups, so they contribute similarly to the first dimension.
-For the second dimension we have that the Taste group of variables has a greater value for the second dimension, which means that it contributes more to it.
+We can observe that the groups give a similar representation of the individuals, in fact, they are close
+to each other. Specifically, we see that for both, the value on the first dimension is close to 1
+(around 0.8) which means that the Lg (Lg(Kj, v1) : projected inertia of all the variables of j-th
+group on v1) value with the first dimension of the MFA is high for both the groups, so they
+contribute similarly to the first dimension. For the second dimension we have that the Taste
+group has a greater value, which means that it contributes more to it.
 
 
 To draw a bar plot of groups contribution to the dimensions, use the function fviz_contrib():
@@ -177,17 +182,26 @@ fviz_contrib(res, "group", axes = 2)
 plot(res,choix="axes")
 ```
 Partial axes: 
-The graph of partial axes shows the relationship between the principal axes of the MFA and the ones obtained from analyzing each group.
-From the graph obtained after applying the MFA, we observe that the first dimension of the Intensity group is very related to the first dimension of the global MFA, while it is negatively related to the second dimension of the global MFA, which means that in this dimension the description provided by such group of variables, diverge from the one of the Global MFA. (MAKES SENSE?????)
-For the Taste group instead, we have that the first dimension, is negatively correlated to the first dimension of the global MFA, so for this dimension, it has a description which will be the opposite one of the global MFA.
-While it is highly correlated in the second dimension with the global MFA.
+The graph of partial axes shows the relationship between the principal axes of the MFA
+and the ones obtained from analyzing each group. From the graph obtained after applying the
+MFA, we observe that the first dimension of the Intensity group is very much related to the
+first dimension of the global MFA, while it is pointing in the opposite direction with respect to
+the second dimension of the global MFA, which means that in this dimension the description
+provided by such group of variables, diverge from the one of the global MFA. For the Taste
+group instead, we have that the first dimension, it is pointing in opposite direction with respect
+to the first dimension of the global MFA, so for this dimension, it has a description which will be
+different from the one of the global MFA. While it is highly correlated in the second dimension
+with the global MFA.
 
 ```{r}
 res$partial.axes
 ```
-The graphical results is confirmed by the $coord variable.
-In fact, Dim1.Intensity and Dim1 have a value of 0.89, highlighting that they point in the same direction, while Dim1.Taste and Dim1 have a negative value of -0.89.
-At the same time Dim2.Intensity and Dim2 have a value of -0.74 while Dim2.Taste and Dim2 are higly correlated, with a value of 0.89.
+The graphical results is confirmed by the coord variable obtained in the
+res.partial.axes. In fact, Dim1.Intensity and Dim1 have a value of 0.89, highlighting that they
+point in the same direction, while Dim1.Taste and Dim1 have a negative value of -0.89. At the
+same time Dim2.Intensity and Dim2 have a value of -0.74 while Dim2.Taste and Dim2 are highly
+correlated, with a value of 0.89.
+
 
 ### Variables
 
@@ -213,7 +227,7 @@ head(var$contrib)
 
 Now we will describe how to visualize the variables colored by groups. 
 Then it makes sense to highlight variables according to either 
-- their quality of representation on the factor map or 
+- their quality of representation on the factor map
 - their contributions to the dimensions.
 
 Correlation between the variables and dimensions. 
@@ -231,17 +245,9 @@ We can also change the legend position from “right” to “bottom”, using t
 fviz_mfa_var(res, "quanti.var", palette = "jco", repel = TRUE, geom = c("point", "text"), legend = "bottom")
 ```
 
-Briefly, the graph of variables (correlation circle) shows the relationship between variables, the quality of the representation of variables, as well as, the correlation between variables and the dimensions.
-Positive correlated variables are grouped together, whereas negative ones are positioned on opposite sides of the plot origin (opposed quadrants).
-The distance between variable points and the origin measures the quality of the variable on the factor map. 
-Variable points that are away from the origin are well represented on the factor map.
-For a given dimension, the most correlated variables to the dimension are close to it.
-
-In this case we observe that variables like Color.Intensity, Acid and Attack.Intensity are highly correlated, and are the one who better represent the first dimension. Which may indicate a relationship between the color of the orange and the acidity of it.
-The second dimension instead is represented mainly by the Odor.Intensity attribute and the bitterness and pulp attributes.
-Moreover the Bitter and Odor.Intensity attributes are close in the graph, which may indicate a relationship between the intensity of the Odor and the bitterness of the orange juice.
-We can also observe how opposite attributes are coherently represented in the plot.
-For example, Sweet and Bitter, which represent opposite tastes, are in opposite quadrants.
+Briefly, the graph of variables (correlation circle) shows the relationship between variables, the quality of the representation of variables, as well as, the correlation between variables and the dimensions. Positive correlated variables are grouped together, whereas negative ones are positioned on opposite sides of the plot origin (opposed quadrants). The distance between variable points and the origin measures the quality of the variable on the factor map. Variable points that are away from the origin are well represented on the factor map. For a given dimension, the most correlated variables to the dimension are the one close to it in the graph.
+In this case we observe that variables like Color.Intensity, Acid and Attack.Intensity are highly correlated, and are the ones who are more correlated to the first dimension. Then the first dimension represents essentially the color intensity and the acidity of the orange juices showing a relationship between the color of the orange and the acidity of it. The second dimension instead is represented mainly by the Odor.Intensity attribute and the bitterness and pulp attributes. Moreover the Bitter and Odor.Intensity attributes are close in the graph, which may indicate a relationship between the intensity of the odor and the bitterness of the orange juice. We can
+also observe how opposite attributes are coherently represented in the plot. For example, Sweet and Bitter, which represent opposite tastes, are in opposite quadrants.
 
 
 The contribution of the variables (in %) to the definition of the dimensions can be visualized using the function fviz_contrib().
@@ -305,14 +311,8 @@ fviz_mfa_ind(res, col.ind = "cos2",
              repel = TRUE)
 ```
 
-Individuals with similar profiles are close to each other.
-The first dimension, opposes wines 12 and 4 against for example, 3, 2 and 11.
-As explained before, the first dimension is more associated with the Color.Intensity and the Acidity of the juice, and has opposite correlation with the Tipicity. 
-Therefore, the orange juices with number 12 and 4 are the one having stronger color and acid taste, while the 3, 2 and 11 have high tipicity, being in the same direction of the Tipicity attribute.
-The second dimension is mostly correlated with the orange juice number 5.
-The second dimension describes the juices having the strongest odor and a bitter taste.
-The orange juices 7 and 8 for example, are in the opposite direction of the second dimension, which may indicate that they are the one having less odor and a more sweet taste.
-Regarding the sweetness, orange juices 10 and 1 lay in the direction of the sweet attribute, which may indicate that they are the most sweet orange juices.
+Individuals with similar profiles are close. The first dimension, opposes wines 12 and 4 against for example 3, 2 and 11. As explained before, the first dimension is more associated with the Color.Intensity and the acidity of the juice. Therefore, the orange juices with number 12 and 4 are the one having stronger color and acid taste, while the 3, 2 and 11 have high typicity, being in the same direction of the Typicity attribute. The second dimension is mostly correlated with the orange juice number 5. The second dimension describes the juices having the strongest odor and a bitter taste. The orange juices 7 and 8 for example, are far from where the second dimension
+is pointing, which may indicate that they are the one having less odor and bitter taste, but a more sweet taste. Regarding the sweetness, orange juices 10 and 1 lay in the direction of the sweet attribute, which may indicate that they are the most sweet orange juices.
 
 After having considered the individuals as seen by every group, it may be useful to inspect the graph of the individuals for single groups.
 The results for individuals obtained from the analysis performed with a single group are named partial individuals. 
@@ -322,17 +322,15 @@ In the default fviz_mfa_ind() plot, for a given individual, the point correspond
 
 For a given individual, there are as many partial points as groups of variables.
 
-The graph of partial individuals represents each wine viewed by each group and its barycenter. To plot the partial points of all individuals:
+The graph of partial individuals represents each orange juice viewed by each group and its barycenter. To plot the partial points of all individuals:
 
 ```{r}
 fviz_mfa_ind(res, partial = "all") 
 ```
-
-Here we can inspect each orange juice as seen by each group.
-For example we can see that orange juice n.4 as described before, has high values of acidity and color intensity, and this characteristics are mostly described by the Intensity group of variables, while the Taste group tends to give a description of it less related to such attributes.
-Another example is for instance orange juice n.11 to which the Taste group assign high values in the second dimension, describing it as a bitter juice, with a strong odor, while the Intensity group tends to give an opposite opinion with regards to these attributes.
-Finally what we observe is that in each orange juice, the length of the two segment assigned to each group, are almost always identical between each other, and pointing in opposite directions.
-This means that the two group describe the orange juices mostly in opposite way, and with the same magnitude. (MAKES SENSE????)
+We can see that orange juice n.4 as described before, has high values of acidity and color intensity, and this characteristics
+are mostly assigned by the Intensity group of variables, while the Taste group tends to give a description of it less related to such attributes. Another example is for instance orange juice n.11 to which the Taste group assigns high values in the second dimension, describing it as a bitter juice, with a strong odor, while the Intensity group tends to give an opposite opinion
+with regards to these attributes. For the other points the reasoning proceeds in the same way. Generally, we observe that the descriptions given by the two groups, are not so aligned with the mean description given by the global MFA, in fact the partial points, tend to be distant from the mean points. Moreover, the partial points tend to be often distant from each other, which
+mean that generally, the two group of variables have different opinions about the attributes to describe the orange juices. The only orange juices in which the partial descriptions made by the two groups of variables are similar to the mean one are the number 2, 5 and 12.
 
 To further inspect the results, we plot the partial axes.
 The graph of partial axes shows the relationship between the principal axes of the MFA and the ones obtained from analyzing each group using PCA (for groups of continuous variables).
